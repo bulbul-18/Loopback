@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
@@ -39,12 +40,34 @@ function requireAuth(req, res, next) {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Brute-force protection: after 8 failed/attempted logins from the same IP
+// within 15 minutes, block further attempts for the rest of that window.
+// Counts every request (not just failures) so an attacker can't sidestep it
+// by mixing in occasional valid-looking requests.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Try again in a few minutes.' },
+});
+
+// Looser limit on registration -- mainly to slow down mass fake-account
+// creation, not a real user's normal behavior.
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many accounts created from this network. Try again later.' },
+});
+
 const router = express.Router();
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/register  { email, password }
 // ---------------------------------------------------------------------------
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !EMAIL_RE.test(email)) {
     return res.status(400).json({ error: 'Enter a valid email address' });
@@ -73,7 +96,7 @@ router.post('/register', async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /api/auth/login  { email, password }
 // ---------------------------------------------------------------------------
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 

@@ -1,3 +1,4 @@
+// server.js
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -7,6 +8,15 @@ const { fetchRecentAccepted, fetchProblemDetailsWithRetry, sleep } = require('./
 const { router: authRouter, requireAuth, issueToken, passport, googleEnabled } = require('./auth');
 
 const app = express();
+
+// When deployed behind a reverse proxy (Render, Railway, etc.), this tells
+// Express to read the real client IP from X-Forwarded-For instead of seeing
+// every request as coming from the proxy -- otherwise rate limiting below
+// would lump all users together as one "IP".
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
