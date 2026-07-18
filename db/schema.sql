@@ -9,6 +9,19 @@ CREATE TABLE IF NOT EXISTS users (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- One row per token, single-use, expires quickly. Only the hash is stored,
+-- never the raw token -- same principle as password_hash.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id            SERIAL PRIMARY KEY,
+    user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash    TEXT NOT NULL,
+    expires_at    TIMESTAMPTZ NOT NULL,
+    used_at       TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id);
+
 CREATE TABLE IF NOT EXISTS solve_method_intervals (
     solve_method            TEXT PRIMARY KEY,
     label                   TEXT NOT NULL,

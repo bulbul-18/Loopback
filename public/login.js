@@ -20,6 +20,7 @@ document.querySelectorAll('.auth-tab').forEach((tab) => {
     tab.classList.add('active');
     submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
     passwordHint.hidden = mode === 'login';
+    document.getElementById('forgotPasswordLink').hidden = mode !== 'login';
     errorEl.hidden = true;
   });
 });

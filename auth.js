@@ -1,10 +1,12 @@
 const express = require('express');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { pool } = require('./db');
+const { sendPasswordResetEmail } = require('./email');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const COOKIE_NAME = 'loopback_token';
@@ -60,6 +62,16 @@ const registerLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many accounts created from this network. Try again later.' },
+});
+
+// Prevents someone from spamming the reset-email endpoint to flood a
+// stranger's inbox, or from using it to enumerate which emails are registered.
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reset requests. Try again in a few minutes.' },
 });
 
 const router = express.Router();
@@ -122,6 +134,79 @@ router.post('/login', loginLimiter, async (req, res) => {
 router.post('/logout', (req, res) => {
   res.clearCookie(COOKIE_NAME);
   res.json({ loggedOut: true });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/forgot-password  { email }
+// Always responds the same way whether or not the email exists -- otherwise
+// this endpoint could be used to check which emails have accounts.
+// ---------------------------------------------------------------------------
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  const { email } = req.body || {};
+  const genericResponse = { message: 'If that email has an account, a reset link has been sent.' };
+
+  if (!email || !EMAIL_RE.test(email)) return res.json(genericResponse);
+
+  const result = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+  const user = result.rows[0];
+  if (!user) return res.json(genericResponse); // don't reveal whether the account exists
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await pool.query(
+    `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+    [user.id, tokenHash, expiresAt]
+  );
+
+  try {
+    await sendPasswordResetEmail(email.toLowerCase(), rawToken);
+  } catch (err) {
+    console.error('Failed to send password reset email:', err.message);
+    // Still return the generic success message -- don't leak email-sending
+    // failures to the client, and don't let it hint the account exists.
+  }
+
+  res.json(genericResponse);
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/reset-password  { token, password }
+// ---------------------------------------------------------------------------
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token) return res.status(400).json({ error: 'Missing reset token' });
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const result = await pool.query(
+    `SELECT * FROM password_reset_tokens WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()`,
+    [tokenHash]
+  );
+  const resetRecord = result.rows[0];
+  if (!resetRecord) {
+    return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+  }
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, resetRecord.user_id]);
+    await client.query('UPDATE password_reset_tokens SET used_at = now() WHERE id = $1', [resetRecord.id]);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  res.json({ reset: true });
 });
 
 // ---------------------------------------------------------------------------

@@ -222,3 +222,11 @@ button:disabled { opacity: 0.55; cursor: default; }
   .loop-rings { width: 180px; height: 180px; }
   .loop-hero-text h1 { font-size: 2.6rem; }
 }
+
+.auth-success {
+  margin-top: 14px; font-size: 0.8rem; color: var(--accent-2); background: #16302b;
+  border: 1px solid #1f4a40; border-radius: 8px; padding: 10px 12px;
+}
+.auth-footer-link { text-align: center; margin-top: 18px; font-size: 0.82rem; }
+.auth-footer-link a { color: var(--text-muted); text-decoration: none; }
+.auth-footer-link a:hover { color: var(--accent); text-decoration: underline; }
