@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
@@ -47,7 +46,7 @@ if (googleEnabled) {
     passport.authenticate('google', { session: false, failureRedirect: '/login.html?error=google' }),
     (req, res) => {
       issueToken(res, req.user.id);
-      res.redirect('/'); // back to the app, now signed in
+      res.redirect('/app.html'); // back to the app, now signed in
     }
   );
 }
@@ -289,8 +288,9 @@ app.get('/api/mastered', async (req, res) => {
 // ---------------------------------------------------------------------------
 app.get('/api/dashboard', async (req, res) => {
   const date = resolveToday(req.query.date);
-  const [due, pending, active, mastered, sync, account] = await Promise.all([
+  const [due, overdue, pending, active, mastered, sync, account] = await Promise.all([
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'active' AND next_revision_date <= $2`, [req.userId, date]),
+    pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'active' AND next_revision_date < $2`, [req.userId, date]),
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'pending_tag'`, [req.userId]),
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'active'`, [req.userId]),
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'mastered'`, [req.userId]),
@@ -300,6 +300,7 @@ app.get('/api/dashboard', async (req, res) => {
 
   res.json({
     dueToday: Number(due.rows[0].c),
+    overdue: Number(overdue.rows[0].c),
     pendingTag: Number(pending.rows[0].c),
     activeTotal: Number(active.rows[0].c),
     masteredTotal: Number(mastered.rows[0].c),
@@ -307,6 +308,7 @@ app.get('/api/dashboard', async (req, res) => {
     leetcodeUsername: account.rows[0]?.leetcode_username || null,
   });
 });
+
 
 // ---------------------------------------------------------------------------
 // PATCH /api/account  { leetcode_username }

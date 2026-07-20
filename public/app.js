@@ -128,9 +128,13 @@ async function loadDashboard() {
     ? 'last synced ' + timeAgo(d.lastSynced)
     : 'not synced yet';
 
-  // light up rings proportional to how many are due (visual flourish, capped at ring count)
-  const rings = document.querySelectorAll('#loopRings .ring');
-  rings.forEach((r, i) => r.classList.toggle('due', i < Math.min(d.dueToday, rings.length)));
+  const overdueNote = document.getElementById('overdueNote');
+  if (d.overdue > 0) {
+    overdueNote.textContent = `(${d.overdue} overdue)`;
+    overdueNote.hidden = false;
+  } else {
+    overdueNote.hidden = true;
+  }
 }
 
 function timeAgo(iso) {
@@ -188,9 +192,11 @@ async function loadRevisionQueue() {
   items.forEach((p) => {
     const node = tmpl.content.cloneNode(true);
     node.querySelector('.card-title').textContent = p.title;
+    const isOverdue = p.next_revision_date < localToday();
     node.querySelector('.card-meta').innerHTML =
       (p.difficulty ? `<span class="difficulty ${p.difficulty}">${p.difficulty}</span>` : '') +
-      `revision #${p.revision_count + 1} · last gap ${p.current_interval_days}d`;
+      `revision #${p.revision_count + 1} · last gap ${p.current_interval_days}d` +
+      (isOverdue ? ` <span class="stamp">overdue</span>` : '');
 
     node.querySelectorAll('.rate-btn').forEach((btn) => {
       btn.addEventListener(
@@ -231,7 +237,8 @@ async function loadMastered(query = '') {
     node.querySelector('.card-title').textContent = p.title;
     node.querySelector('.card-meta').innerHTML =
       (p.difficulty ? `<span class="difficulty ${p.difficulty}">${p.difficulty}</span>` : '') +
-      'mastered ' + new Date(p.mastered_at).toLocaleDateString();
+      new Date(p.mastered_at).toLocaleDateString() +
+      ` <span class="stamp stamp-success">mastered</span>`;
 
     const unmasterBtn = node.querySelector('.unmaster-btn');
     unmasterBtn.addEventListener(

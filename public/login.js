@@ -1,4 +1,4 @@
-let mode = 'login'; // or 'register'
+let mode = new URLSearchParams(location.search).get('mode') === 'register' ? 'register' : 'login';
 
 const form = document.getElementById('authForm');
 const submitBtn = document.getElementById('submitBtn');
@@ -13,15 +13,19 @@ fetch('/api/auth/config')
   })
   .catch(() => {}); // fine to fail quietly -- Google button just stays hidden
 
+function applyMode() {
+  document.querySelectorAll('.auth-tab').forEach((t) => t.classList.toggle('active', t.dataset.mode === mode));
+  submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+  passwordHint.hidden = mode === 'login';
+  document.getElementById('forgotPasswordLink').hidden = mode !== 'login';
+  errorEl.hidden = true;
+}
+applyMode();
+
 document.querySelectorAll('.auth-tab').forEach((tab) => {
   tab.addEventListener('click', () => {
     mode = tab.dataset.mode;
-    document.querySelectorAll('.auth-tab').forEach((t) => t.classList.remove('active'));
-    tab.classList.add('active');
-    submitBtn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
-    passwordHint.hidden = mode === 'login';
-    document.getElementById('forgotPasswordLink').hidden = mode !== 'login';
-    errorEl.hidden = true;
+    applyMode();
   });
 });
 
@@ -48,7 +52,7 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Something went wrong');
-    location.href = '/'; // signed in -- go to the app
+    location.href = '/app.html'; // signed in -- go to the app
   } catch (err) {
     errorEl.textContent = err.message;
     errorEl.hidden = false;
