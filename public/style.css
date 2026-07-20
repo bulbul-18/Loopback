@@ -42,7 +42,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.app { max-width: 820px; margin: 0 auto; padding: 0 20px 60px; }
+.app { max-width: 1240px; margin: 0 auto; padding: 0 24px 60px; }
 
 /* ---------- topbar: the "book cover" ---------- */
 .topbar {
@@ -56,7 +56,7 @@ body {
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-name {
   font-family: var(--font-display); font-weight: 600; font-size: 1.25rem;
-  letter-spacing: 0.02em; color: var(--text-on-navy);
+  letter-spacing: 0.02em; color: var(--border-strong);
 }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .sync-status { font-size: 0.74rem; color: var(--gold-light); font-family: var(--font-mono); }
@@ -215,9 +215,16 @@ button:disabled { opacity: 0.55; cursor: default; }
 .full-width { width: 100%; justify-content: center; }
 
 /* ---------- form inputs ---------- */
+
+#authForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
 .field-label {
   display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
-  margin: 14px 0 6px; font-family: var(--font-display);
+  margin: 8px 0 8px; font-family: var(--font-display);
 }
 .text-input {
   width: 100%; background: var(--surface-raised); border: 1px solid var(--border); color: var(--text);
@@ -375,4 +382,109 @@ button:disabled { opacity: 0.55; cursor: default; }
 @media (max-width: 480px) {
   .steps-row { grid-template-columns: 1fr; }
   .landing-nav-links { display: none; }
+}
+
+
+/* =========================================================================
+   APP DASHBOARD REVAMP
+   ========================================================================= */
+
+/* merged nav: brand + tabs + actions in one bar */
+.topbar-merged { flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
+.tabs-inline {
+  display: flex; gap: 2px; margin: 0; border-bottom: none; overflow-x: auto;
+}
+.tabs-inline .tab {
+  background: transparent; border: none; color: var(--gold-light); font-family: var(--font-body);
+  font-weight: 600; font-size: 0.84rem; padding: 8px 12px; border-radius: 6px; top: 0;
+}
+.tabs-inline .tab:hover { background: var(--navy-light); color: var(--text-on-navy); }
+.tabs-inline .tab.active { background: var(--gold); color: #2B2013; }
+.tabs-inline .tab-count {
+  background: var(--navy-light); color: var(--text-on-navy);
+}
+.tabs-inline .tab.active .tab-count { background: rgba(43,32,19,0.2); color: #2B2013; }
+
+/* greeting row */
+.greeting-row {
+  display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin: 20px 0 22px;
+}
+.greeting-title { font-family: var(--font-display); font-size: 1.7rem; margin: 0; font-weight: 600; }
+.greeting-sub { color: var(--text-muted); margin: 4px 0 0; font-size: 0.9rem; }
+.quote-box {
+  font-family: var(--font-display); font-style: italic; color: var(--leather);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 18px; max-width: 320px; font-size: 0.9rem; text-align: center;
+}
+
+/* icon stat cards */
+.stat-row-icons { grid-template-columns: repeat(4, 1fr); margin-bottom: 20px; }
+.stat-card-icon { display: flex; align-items: center; gap: 12px; text-align: left; }
+.stat-icon {
+  width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.stat-icon-due { background: #F1D4D0; }
+.stat-icon-tag { background: #F1E1BC; }
+.stat-icon-active { background: #DCE9D8; }
+.stat-icon-mastered { background: #DCE9D8; }
+
+
+.dash-columns { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 780px) { .dash-columns { grid-template-columns: 1fr 340px; } }
+
+.ledger-panel-header-row { display: flex; align-items: center; justify-content: space-between; }
+.link-btn {
+  background: none; border: none; color: var(--gold-light); font-family: var(--font-body);
+  font-weight: 600; font-size: 0.78rem; cursor: pointer; padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* preview rows (dashboard-only condensed list items) */
+.preview-list { display: flex; flex-direction: column; }
+.preview-row {
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-row:last-child { border-bottom: none; }
+.preview-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bad); flex-shrink: 0; }
+.preview-dot.due-soon { background: var(--warn); }
+.preview-dot.due-later { background: var(--accent-2); }
+.preview-row-main { flex: 1; min-width: 0; }
+.preview-row-title { font-family: var(--font-display); font-weight: 600; font-size: 0.9rem; margin: 0; }
+.preview-row-meta { color: var(--text-muted); font-size: 0.76rem; margin: 2px 0 0; }
+.preview-row-right { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; font-family: var(--font-mono); }
+.preview-empty { padding: 16px 14px; color: var(--text-muted); font-size: 0.85rem; font-style: italic; }
+
+/* weekly honest stats */
+.week-stats { display: flex; flex-direction: column; gap: 14px; }
+.week-stat-row { display: flex; align-items: baseline; gap: 10px; }
+.week-stat-num { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: var(--gold); }
+.week-stat-label { color: var(--text-muted); font-size: 0.85rem; }
+
+/* quick actions */
+.quick-actions { display: flex; flex-direction: column; gap: 8px; }
+.quick-action-btn {
+  display: flex; align-items: center; gap: 10px; background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px; font-family: var(--font-body); font-weight: 600; font-size: 0.85rem;
+  color: var(--text); cursor: pointer; text-align: left;
+}
+.quick-action-btn:hover { border-color: var(--gold); background: #FBF0D6; }
+
+/* note card */
+.note-card {
+  background: var(--parchment-dark); border: 1px dashed var(--border-strong); border-radius: 8px;
+  padding: 14px 16px; font-size: 0.84rem; color: var(--text);
+}
+.note-card p { margin: 0; }
+
+/* footer */
+.app-footer { text-align: center; padding: 30px 0 10px; }
+.app-footer p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
+
+@media (max-width: 700px) {
+  .stat-row-icons { grid-template-columns: 1fr 1fr; }
+  .tabs-inline { width: 100%; order: 3; }
+  .topbar-merged { justify-content: space-between; }
 }

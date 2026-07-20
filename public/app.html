@@ -12,10 +12,11 @@
 
 <div class="app">
 
-  <header class="topbar">
+  <!-- MERGED NAV: brand + tabs + actions in one bar -->
+  <header class="topbar topbar-merged">
     <div class="brand">
       <span class="brand-mark">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <svg width="24" height="24" viewBox="0 0 26 26" fill="none">
           <circle cx="13" cy="13" r="11.5" stroke="var(--accent)" stroke-width="1.6"/>
           <circle cx="13" cy="13" r="7" stroke="var(--accent-2)" stroke-width="1.6"/>
           <circle cx="13" cy="13" r="2.4" fill="var(--accent)"/>
@@ -23,6 +24,15 @@
       </span>
       <span class="brand-name">LoopBack</span>
     </div>
+
+    <nav class="tabs tabs-inline">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="tagQueue">Tag queue <span class="tab-count" id="tagCount"></span></button>
+      <button class="tab" data-tab="revisionQueue">Due for revision <span class="tab-count" id="dueCount"></span></button>
+      <button class="tab" data-tab="mastered">Mastered</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+
     <div class="topbar-right">
       <span class="sync-status" id="syncStatus">not synced yet</span>
       <button class="btn btn-ghost" id="syncBtn">
@@ -35,46 +45,108 @@
     </div>
   </header>
 
-  <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="tagQueue">Tag queue <span class="tab-count" id="tagCount"></span></button>
-    <button class="tab" data-tab="revisionQueue">Due for revision <span class="tab-count" id="dueCount"></span></button>
-    <button class="tab" data-tab="mastered">Mastered</button>
-    <button class="tab" data-tab="settings">Settings</button>
-  </nav>
-
   <main class="content">
 
     <!-- DASHBOARD -->
     <section class="panel active" id="panel-dashboard">
-      <div class="dash-grid">
-        <div class="ledger-panel">
-          <div class="ledger-panel-header">At a glance</div>
-          <div class="ledger-panel-body">
-            <div class="stat-row">
-              <div class="stat-card">
-                <p class="stat-num" id="dueTodayBig">0</p>
-                <p class="stat-label">Due today</p>
-                <p class="stat-overdue" id="overdueNote" hidden></p>
-              </div>
-              <div class="stat-card">
-                <p class="stat-num" id="statPending">0</p>
-                <p class="stat-label">Awaiting tag</p>
-              </div>
-              <div class="stat-card">
-                <p class="stat-num" id="statActive">0</p>
-                <p class="stat-label">Active</p>
-              </div>
-              <div class="stat-card">
-                <p class="stat-num" id="statMastered">0</p>
-                <p class="stat-label">Mastered</p>
-              </div>
-            </div>
+
+      <div class="greeting-row">
+        <div>
+          <h1 class="greeting-title" id="greetingTitle">Welcome back</h1>
+          <p class="greeting-sub">Here's where things stand today.</p>
+        </div>
+        <div class="quote-box" id="quoteBox"></div>
+      </div>
+
+      <div class="stat-row stat-row-icons">
+        <div class="stat-card stat-card-icon">
+          <span class="stat-icon stat-icon-due">📅</span>
+          <div>
+            <p class="stat-num" id="dueTodayBig">0</p>
+            <p class="stat-label">Due today</p>
+            <p class="stat-overdue" id="overdueNote" hidden></p>
+          </div>
+        </div>
+        <div class="stat-card stat-card-icon">
+          <span class="stat-icon stat-icon-tag">🏷️</span>
+          <div>
+            <p class="stat-num" id="statPending">0</p>
+            <p class="stat-label">Awaiting tag</p>
+          </div>
+        </div>
+        <div class="stat-card stat-card-icon">
+          <span class="stat-icon stat-icon-active">📘</span>
+          <div>
+            <p class="stat-num" id="statActive">0</p>
+            <p class="stat-label">Active</p>
+          </div>
+        </div>
+        <div class="stat-card stat-card-icon">
+          <span class="stat-icon stat-icon-mastered">🏆</span>
+          <div>
+            <p class="stat-num" id="statMastered">0</p>
+            <p class="stat-label">Mastered</p>
           </div>
         </div>
       </div>
 
-      <p class="empty-state" style="padding: 6px 0; text-align: left; font-size: 0.82rem;">Sync pulls anything you've solved on LeetCode since last time.</p>
+      <div class="dash-columns">
+        <div class="dash-col-main">
+
+          <div class="ledger-panel" style="margin-bottom: 16px;">
+            <div class="ledger-panel-header ledger-panel-header-row">
+              <span>Due for revision</span>
+              <button class="link-btn" data-goto="revisionQueue">View all</button>
+            </div>
+            <div class="preview-list" id="previewRevisionList"></div>
+          </div>
+
+          <div class="ledger-panel">
+            <div class="ledger-panel-header ledger-panel-header-row">
+              <span>Awaiting tags</span>
+              <button class="link-btn" data-goto="tagQueue">View all</button>
+            </div>
+            <div class="preview-list" id="previewTagList"></div>
+          </div>
+
+        </div>
+
+        <div class="dash-col-side">
+
+          <div class="ledger-panel" style="margin-bottom: 16px;">
+            <div class="ledger-panel-header">Last 7 days</div>
+            <div class="ledger-panel-body week-stats">
+              <div class="week-stat-row">
+                <span class="week-stat-num" id="weekRevisions">0</span>
+                <span class="week-stat-label">revisions completed</span>
+              </div>
+              <div class="week-stat-row">
+                <span class="week-stat-num" id="weekTagged">0</span>
+                <span class="week-stat-label">problems tagged</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ledger-panel" style="margin-bottom: 16px;">
+            <div class="ledger-panel-header">Quick actions</div>
+            <div class="ledger-panel-body quick-actions">
+              <button class="quick-action-btn" id="quickSyncBtn">
+                <span>🔄</span> Sync now
+              </button>
+              <button class="quick-action-btn" data-goto="settings">
+                <span>⚙️</span> Settings
+              </button>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <p><strong>Your data is private.</strong> Everything you tag and revise is scoped to your account only.</p>
+            <p style="margin-top: 8px;">You can wipe all of it any time from Settings.</p>
+          </div>
+
+        </div>
+      </div>
+
     </section>
 
     <!-- TAG QUEUE -->
@@ -133,6 +205,10 @@
       </div>
     </section>
 
+    <footer class="app-footer">
+      <p>LoopBack — built to actually remember, not just to look busy.</p>
+    </footer>
+
   </main>
 </div>
 
@@ -171,6 +247,17 @@
     <div style="padding: 0 16px 14px;">
       <button class="btn btn-ghost small unmaster-btn">Send back to revision</button>
     </div>
+  </div>
+</template>
+
+<template id="previewRowTemplate">
+  <div class="preview-row">
+    <span class="preview-dot"></span>
+    <div class="preview-row-main">
+      <p class="preview-row-title"></p>
+      <p class="preview-row-meta"></p>
+    </div>
+    <span class="preview-row-right"></span>
   </div>
 </template>
 

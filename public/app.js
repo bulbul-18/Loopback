@@ -127,6 +127,8 @@ async function loadDashboard() {
   document.getElementById('syncStatus').textContent = d.lastSynced
     ? 'last synced ' + timeAgo(d.lastSynced)
     : 'not synced yet';
+  document.getElementById('weekRevisions').textContent = d.revisionsLast7Days;
+  document.getElementById('weekTagged').textContent = d.taggedLast7Days;
 
   const overdueNote = document.getElementById('overdueNote');
   if (d.overdue > 0) {
@@ -136,6 +138,72 @@ async function loadDashboard() {
     overdueNote.hidden = true;
   }
 }
+
+// ---------- greeting + quote (dashboard header, no backend needed) ----------
+function renderGreeting() {
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const name = currentUser?.email ? currentUser.email.split('@')[0] : 'there';
+  document.getElementById('greetingTitle').textContent = `Good ${timeOfDay}, ${name}`;
+}
+
+const QUOTES = [
+  'Revision today, recall tomorrow.',
+  'You already solved it once — trust that.',
+  'Forgetting is normal. Revisiting is the whole point.',
+  'Slow recall now beats no recall in an interview.',
+  'A problem isn\u2019t learned until you\u2019ve forgotten it and found it again.',
+];
+function renderQuote() {
+  // Deterministic per day, not random per reload -- feels intentional, not flickery.
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  document.getElementById('quoteBox').textContent = '"' + QUOTES[dayIndex % QUOTES.length] + '"';
+}
+
+// ---------- dashboard preview lists (top 5 of real queue data, no new endpoints) ----------
+function renderPreviewList(containerId, items, kind) {
+  const container = document.getElementById(containerId);
+  const tmpl = document.getElementById('previewRowTemplate');
+  container.innerHTML = '';
+
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'preview-empty';
+    empty.textContent = kind === 'revision' ? 'Nothing due right now.' : 'Nothing waiting to be tagged.';
+    container.appendChild(empty);
+    return;
+  }
+
+  items.slice(0, 5).forEach((p) => {
+    const node = tmpl.content.cloneNode(true);
+    node.querySelector('.preview-row-title').textContent = p.title;
+
+    if (kind === 'revision') {
+      const isOverdue = p.next_revision_date < localToday();
+      const isToday = p.next_revision_date === localToday();
+      const dot = node.querySelector('.preview-dot');
+      if (!isOverdue) dot.classList.add(isToday ? 'due-soon' : 'due-later');
+      node.querySelector('.preview-row-meta').textContent = p.difficulty || '';
+      node.querySelector('.preview-row-right').textContent = isOverdue ? 'Overdue' : isToday ? 'Today' : p.next_revision_date;
+    } else {
+      node.querySelector('.preview-dot').classList.add('due-later');
+      node.querySelector('.preview-row-meta').textContent = p.difficulty || '';
+      node.querySelector('.preview-row-right').textContent = timeAgo(p.solved_at);
+    }
+
+    container.appendChild(node);
+  });
+}
+
+// "View all" links jump to the relevant tab
+document.querySelectorAll('[data-goto]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const targetTab = document.querySelector(`.tab[data-tab="${btn.dataset.goto}"]`);
+    if (targetTab) targetTab.click();
+  });
+});
+
+document.getElementById('quickSyncBtn').addEventListener('click', () => syncBtn.click());
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -154,6 +222,8 @@ async function loadTagQueue() {
   const tmpl = document.getElementById('tagCardTemplate');
   list.innerHTML = '';
   document.getElementById('tagEmpty').hidden = items.length > 0;
+
+  renderPreviewList('previewTagList', items, 'tag');
 
   items.forEach((p) => {
     const node = tmpl.content.cloneNode(true);
@@ -188,6 +258,8 @@ async function loadRevisionQueue() {
   const tmpl = document.getElementById('revisionCardTemplate');
   list.innerHTML = '';
   document.getElementById('revisionEmpty').hidden = items.length > 0;
+
+  renderPreviewList('previewRevisionList', items, 'revision');
 
   items.forEach((p) => {
     const node = tmpl.content.cloneNode(true);
@@ -298,6 +370,8 @@ resetAccountBtn.addEventListener(
 
 async function refreshAll() {
   try {
+    renderGreeting();
+    renderQuote();
     await Promise.all([loadDashboard(), loadTagQueue(), loadRevisionQueue(), loadMastered()]);
     loadSettingsPanel();
   } catch (err) {

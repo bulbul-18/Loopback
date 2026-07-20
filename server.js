@@ -288,7 +288,7 @@ app.get('/api/mastered', async (req, res) => {
 // ---------------------------------------------------------------------------
 app.get('/api/dashboard', async (req, res) => {
   const date = resolveToday(req.query.date);
-  const [due, overdue, pending, active, mastered, sync, account] = await Promise.all([
+  const [due, overdue, pending, active, mastered, sync, account, revisions7d, tagged7d] = await Promise.all([
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'active' AND next_revision_date <= $2`, [req.userId, date]),
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'active' AND next_revision_date < $2`, [req.userId, date]),
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'pending_tag'`, [req.userId]),
@@ -296,6 +296,15 @@ app.get('/api/dashboard', async (req, res) => {
     pool.query(`SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND status = 'mastered'`, [req.userId]),
     pool.query(`SELECT last_synced_at FROM sync_state WHERE user_id = $1`, [req.userId]),
     pool.query(`SELECT leetcode_username FROM users WHERE id = $1`, [req.userId]),
+    pool.query(
+      `SELECT COUNT(*) c FROM revisions r JOIN problems p ON p.id = r.problem_id
+       WHERE p.user_id = $1 AND r.revised_at >= now() - interval '7 days'`,
+      [req.userId]
+    ),
+    pool.query(
+      `SELECT COUNT(*) c FROM problems WHERE user_id = $1 AND tagged_at >= now() - interval '7 days'`,
+      [req.userId]
+    ),
   ]);
 
   res.json({
@@ -305,18 +314,10 @@ app.get('/api/dashboard', async (req, res) => {
     activeTotal: Number(active.rows[0].c),
     masteredTotal: Number(mastered.rows[0].c),
     lastSynced: sync.rows[0]?.last_synced_at || null,
+    revisionsLast7Days: Number(revisions7d.rows[0].c),
+    taggedLast7Days: Number(tagged7d.rows[0].c),
     leetcodeUsername: account.rows[0]?.leetcode_username || null,
   });
-});
-
-
-// ---------------------------------------------------------------------------
-// PATCH /api/account  { leetcode_username }
-// ---------------------------------------------------------------------------
-app.patch('/api/account', async (req, res) => {
-  const { leetcode_username } = req.body;
-  await pool.query('UPDATE users SET leetcode_username = $1 WHERE id = $2', [leetcode_username || null, req.userId]);
-  res.json({ leetcode_username: leetcode_username || null });
 });
 
 // ---------------------------------------------------------------------------
