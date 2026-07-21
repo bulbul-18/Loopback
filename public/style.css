@@ -488,3 +488,12 @@ button:disabled { opacity: 0.55; cursor: default; }
   .tabs-inline { width: 100%; order: 3; }
   .topbar-merged { justify-content: space-between; }
 }
+
+
+
+/* clickable LeetCode links on revision cards */
+.card-title-link {
+  color: var(--text); text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+}
+.card-title-link:hover { color: var(--gold); text-decoration: underline; }
+.external-icon { font-size: 0.75em; opacity: 0.6; }

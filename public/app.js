@@ -263,7 +263,12 @@ async function loadRevisionQueue() {
 
   items.forEach((p) => {
     const node = tmpl.content.cloneNode(true);
-    node.querySelector('.card-title').textContent = p.title;
+    const titleEl = node.querySelector('.card-title');
+    if (p.url) {
+      titleEl.innerHTML = `<a href="${p.url}" target="_blank" rel="noopener noreferrer" class="card-title-link">${p.title} <span class="external-icon">↗</span></a>`;
+    } else {
+      titleEl.textContent = p.title;
+    }
     const isOverdue = p.next_revision_date < localToday();
     node.querySelector('.card-meta').innerHTML =
       (p.difficulty ? `<span class="difficulty ${p.difficulty}">${p.difficulty}</span>` : '') +

@@ -323,6 +323,13 @@ app.get('/api/dashboard', async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /api/account/reset -- wipes this user's problems/revisions, keeps login
 // ---------------------------------------------------------------------------
+
+app.patch('/api/account', async (req, res) => {
+  const { leetcode_username } = req.body;
+  await pool.query('UPDATE users SET leetcode_username = $1 WHERE id = $2', [leetcode_username || null, req.userId]);
+  res.json({ leetcode_username: leetcode_username || null });
+});
+
 app.post('/api/account/reset', async (req, res) => {
   await pool.query('DELETE FROM problems WHERE user_id = $1', [req.userId]); // revisions cascade
   await pool.query('UPDATE sync_state SET last_synced_at = NULL WHERE user_id = $1', [req.userId]);
